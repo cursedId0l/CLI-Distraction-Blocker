@@ -85,17 +85,41 @@ fn write_domains(domains: &[String]) -> Result<(), String> {
 
 // -- DNS resolution -----------------------------------------------------------
 
-fn resolve_domain(domain: &str) -> Vec<IpAddr> {
-    let mut ips = Vec::new();
-    for host in [domain.to_string(), format!("www.{domain}")] {
-        let Ok(addrs) = (host.as_str(), 443).to_socket_addrs() else {
-            continue;
+fn resolve_host(host: &str, ips: &mut Vec<IpAddr>) {
+    // Query multiple times — CDNs return different IPs per query
+    for _ in 0..5 {
+        let Ok(addrs) = (host, 443).to_socket_addrs() else {
+            break;
         };
         for addr in addrs {
             if !ips.contains(&addr.ip()) {
                 ips.push(addr.ip());
             }
         }
+    }
+    // Also try dig for IPs that ToSocketAddrs misses
+    for record in ["A", "AAAA"] {
+        let Ok(output) = ProcessCommand::new("dig")
+            .args(["+short", host, record])
+            .output()
+        else {
+            continue;
+        };
+        let stdout = String::from_utf8_lossy(&output.stdout);
+        for line in stdout.lines() {
+            if let Ok(ip) = line.trim().parse::<IpAddr>()
+                && !ips.contains(&ip)
+            {
+                ips.push(ip);
+            }
+        }
+    }
+}
+
+fn resolve_domain(domain: &str) -> Vec<IpAddr> {
+    let mut ips = Vec::new();
+    for host in [domain.to_string(), format!("www.{domain}")] {
+        resolve_host(&host, &mut ips);
     }
     ips
 }
