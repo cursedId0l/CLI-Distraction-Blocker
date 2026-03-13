@@ -1,7 +1,26 @@
 [package]
 name = "focus"
-version = "0.1.0"
+version = "0.2.0"
 edition = "2024"
 
 [dependencies]
 clap = { version = "4.5.60", features = ["derive"] }
+
+[lints.clippy]
+pedantic = { level = "warn", priority = -1 }
+unwrap_used = "deny"
+expect_used = "warn"
+panic = "deny"
+panic_in_result_fn = "deny"
+unimplemented = "deny"
+allow_attributes = "deny"
+dbg_macro = "deny"
+todo = "deny"
+print_stdout = "allow"
+print_stderr = "allow"
+await_holding_lock = "deny"
+large_futures = "deny"
+exit = "deny"
+mem_forget = "deny"
+module_name_repetitions = "allow"
+similar_names = "allow"
